@@ -2,7 +2,7 @@
 # Run from the repository root: vhs docs/media/tapes/planner.tape
 Output docs/media/planner.gif
 Source docs/media/tapes/_settings.tape
-Set Height 600
+Set Height 440
 
 Hide
 Type "source docs/media/demo/env.sh" Enter
