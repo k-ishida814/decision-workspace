@@ -1,5 +1,6 @@
 # Release: push a tag like v0.1.0. Builds the single `dw` binary, attaches it and a filled-in
-# Homebrew formula to a GitHub release. Copy the formula into the tap repository by hand.
+# Homebrew formula to a GitHub release, and pushes the formula to <owner>/homebrew-tap.
+# Needs the secret HOMEBREW_TAP_TOKEN: a fine-grained token with Contents read/write on the tap.
 name: Release
 
 on:
@@ -39,3 +40,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" "$ARCHIVE" decision-workspace.rb --generate-notes
+      - name: Check out the tap
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository_owner }}/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+      - name: Update the tap
+        run: |
+          mkdir -p homebrew-tap/Formula
+          cp decision-workspace.rb homebrew-tap/Formula/decision-workspace.rb
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/decision-workspace.rb
+          git diff --cached --quiet && exit 0
+          git commit -m "decision-workspace ${GITHUB_REF_NAME#v}"
+          git push

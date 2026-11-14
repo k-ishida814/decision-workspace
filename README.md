@@ -110,6 +110,11 @@ Design documents (in Japanese): [requirements](docs/requirements.md),
 [tech stack](docs/tech-stack.md), [tasks](docs/tasks.md), [ADRs](docs/adr/),
 [development guide](docs/development.md).
 
+## Contributing
+
+Issues (bug reports, ideas) are welcome; pull requests are not accepted. See
+[CONTRIBUTING.md](CONTRIBUTING.md) and, for vulnerabilities, [SECURITY.md](SECURITY.md).
+
 ## License
 
 [MIT](LICENSE)
