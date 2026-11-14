@@ -1,0 +1,6 @@
+{
+  "//": "Runtime-neutral package: no Bun/Node types. Importing bun:* or node:* fails here (ADR-0001).",
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

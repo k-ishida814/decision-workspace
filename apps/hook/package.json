@@ -1,0 +1,15 @@
+{
+  "name": "@dw/hook",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/hook.ts",
+    "./entry": "./src/entry.ts"
+  },
+  "dependencies": {
+    "@dw/ipc-client": "workspace:*",
+    "@dw/protocol": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}

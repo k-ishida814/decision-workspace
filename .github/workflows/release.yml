@@ -1,0 +1,41 @@
+# Release: push a tag like v0.1.0. Builds the single `dw` binary, attaches it and a filled-in
+# Homebrew formula to a GitHub release. Copy the formula into the tap repository by hand.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Apple Silicon only for now: OpenTUI's native library is installed per CPU, so an Intel
+    # build needs an Intel runner.
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - name: Build
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          bun scripts/build.ts --target bun-darwin-arm64 --version "$VERSION" --outfile dist/dw
+          test "$(dist/dw version)" = "$VERSION"
+          ARCHIVE="dw-$VERSION-darwin-arm64.tar.gz"
+          tar -czf "$ARCHIVE" -C dist dw
+          SHA="$(shasum -a 256 "$ARCHIVE" | cut -d' ' -f1)"
+          URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$ARCHIVE"
+          sed -e "s|@VERSION@|$VERSION|" -e "s|@URL@|$URL|" -e "s|@SHA256@|$SHA|" \
+              -e "s|@HOMEPAGE@|https://github.com/$GITHUB_REPOSITORY|" \
+              packaging/homebrew/decision-workspace.rb.template > decision-workspace.rb
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" "$ARCHIVE" decision-workspace.rb --generate-notes

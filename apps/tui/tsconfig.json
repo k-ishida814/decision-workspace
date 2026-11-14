@@ -1,0 +1,5 @@
+{
+  "//": "Lets Bun pick up the JSX runtime when running files in this app directly.",
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

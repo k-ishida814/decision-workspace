@@ -1,0 +1,16 @@
+{
+  "name": "@dw/daemon",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@dw/agent-runner": "workspace:*",
+    "@dw/core": "workspace:*",
+    "@dw/ipc-client": "workspace:*",
+    "@dw/protocol": "workspace:*",
+    "@dw/storage": "workspace:*"
+  }
+}

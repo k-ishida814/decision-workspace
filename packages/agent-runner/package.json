@@ -1,0 +1,13 @@
+{
+  "name": "@dw/agent-runner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@dw/protocol": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}

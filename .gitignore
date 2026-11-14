@@ -1,0 +1,22 @@
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# Local decision store (per project)
+.decision-workspace/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# bun build --compile temp files
+*.bun-build

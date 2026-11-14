@@ -1,0 +1,21 @@
+{
+  "name": "@dw/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "dw": "src/main.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@dw/core": "workspace:*",
+    "@dw/daemon": "workspace:*",
+    "@dw/hook": "workspace:*",
+    "@dw/ipc-client": "workspace:*",
+    "@dw/mcp": "workspace:*",
+    "@dw/protocol": "workspace:*",
+    "@dw/tui": "workspace:*"
+  }
+}

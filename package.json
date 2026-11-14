@@ -1,0 +1,43 @@
+{
+  "name": "decision-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "bun@1.4.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "typecheck": "tsc -p tsconfig.json && tsc -p packages/protocol && tsc -p packages/core",
+    "test": "bun test",
+    "check": "bun run lint && bun run typecheck && bun run test",
+    "dw": "bun apps/cli/src/main.ts",
+    "tui": "bun apps/cli/src/main.ts tui",
+    "e2e": "bun test ./tests/e2e/",
+    "build": "bun scripts/build.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.7",
+    "@dw/agent-runner": "workspace:*",
+    "@dw/cli": "workspace:*",
+    "@dw/core": "workspace:*",
+    "@dw/daemon": "workspace:*",
+    "@dw/hook": "workspace:*",
+    "@dw/ipc-client": "workspace:*",
+    "@dw/mcp": "workspace:*",
+    "@dw/protocol": "workspace:*",
+    "@dw/storage": "workspace:*",
+    "@dw/tui": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@opentui/core": "0.8.4",
+    "@opentui/react": "0.8.4",
+    "@types/bun": "^1.4.4",
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1",
+    "typescript": "^7.0.2"
+  }
+}

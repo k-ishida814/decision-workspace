@@ -1,0 +1,17 @@
+{
+  "name": "@dw/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/server.ts",
+    "./entry": "./src/entry.ts"
+  },
+  "dependencies": {
+    "@dw/core": "workspace:*",
+    "@dw/ipc-client": "workspace:*",
+    "@dw/protocol": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  }
+}
