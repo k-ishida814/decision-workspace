@@ -15,7 +15,8 @@ function notify(count: number): void {
   spawn("osascript", ["-e", script], { stdio: "ignore", detached: true }).unref();
 }
 
-export async function hookMain(): Promise<never> {
+/** @param startDaemon how to start the daemon when the Popup can show a question */
+export async function hookMain(startDaemon?: (socketPath: string) => void): Promise<never> {
   for (const signal of ["SIGTERM", "SIGINT", "SIGHUP"] as const)
     process.on(signal, () => process.exit(0));
   const debug = process.env.DW_HOOK_DEBUG === "1";
@@ -24,7 +25,7 @@ export async function hookMain(): Promise<never> {
     const log = debug ? (m: string) => console.error(`[dw hook] ${m}`) : undefined;
     const output = /"hook_event_name"\s*:\s*"UserPromptSubmit"/.test(raw)
       ? await runPromptHook(raw, { socketPath: defaultSocketPath(), log })
-      : await runHook(raw, { socketPath: defaultSocketPath(), notify, log });
+      : await runHook(raw, { socketPath: defaultSocketPath(), notify, log, startDaemon });
     if (output) process.stdout.write(output);
   } catch (error) {
     if (debug) console.error(`[dw hook] unexpected: ${(error as Error).message}`);

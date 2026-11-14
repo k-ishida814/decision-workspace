@@ -1,0 +1,3 @@
+[test]
+# Keep tests away from the real ~/.decision-workspace/config.json (mode, agents) and Popup.
+preload = ["./tests/setup.ts"]

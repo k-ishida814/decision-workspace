@@ -13,6 +13,6 @@
 | [0004](0004-daemon-and-ipc.md)       | Daemon 構成と IPC                                   | Accepted |
 | [0005](0005-vcs-jujutsu.md)          | バージョン管理に Jujutsu を使う                     | Accepted |
 | [0006](0006-popup-window.md)         | Popup のネイティブウィンドウは Tauri 2 で作る       | Accepted |
-| 0007                                 | UI の振り分けモード（T-602 で作成）                 | 予定     |
+| [0007](0007-routing-modes.md)        | 質問の表示先は Daemon が mode で振り分ける          | Accepted |
 | [0008](0008-agent-execution.md)      | サブエージェントは `claude -p` を子プロセスで動かす | Accepted |
 | [0009](0009-distribution.md)         | 単一バイナリを Homebrew で配布する                  | Accepted |

@@ -5,6 +5,7 @@ export * from "./explore";
 export * from "./graph";
 export * from "./overview";
 export * from "./review";
+export * from "./route";
 export * from "./stats";
 export * from "./status";
 export * from "./ui";

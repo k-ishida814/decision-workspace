@@ -7,8 +7,8 @@
  * Fail-open (CC-03, CLAUDE.md): if anything is off — bad input, no daemon, no UI watching,
  * the user chose Claude Code's own UI — return nothing so Claude Code asks as usual.
  */
-import { DwClient, findProjectRoot } from "@dw/ipc-client";
-import { AskQuestion } from "@dw/protocol";
+import { DwClient, findProjectRoot, resolveMode } from "@dw/ipc-client";
+import { AskQuestion, type UiMode } from "@dw/protocol";
 import { z } from "zod";
 
 const HookInput = z.object({
@@ -26,7 +26,19 @@ export type HookOptions = {
   notifyAfterMs?: number;
   /** Debug output. Never receives question text (NFR-08). */
   log?: (message: string) => void;
+  /** Start the daemon when the Popup can show the question (modes auto / popup). */
+  startDaemon?: (socketPath: string) => void;
+  /** The project's mode (T-601). Default: read the settings. */
+  mode?: (project: string) => UiMode;
 };
+
+function modeOf(project: string, options: HookOptions): UiMode {
+  try {
+    return (options.mode ?? ((p: string) => resolveMode(p).mode))(project);
+  } catch {
+    return "workspace"; // broken settings: behave as before modes existed
+  }
+}
 
 /** Returns what to print on stdout, or undefined to print nothing. */
 export async function runHook(raw: string, options: HookOptions): Promise<string | undefined> {
@@ -44,25 +56,40 @@ export async function runHook(raw: string, options: HookOptions): Promise<string
     return undefined;
   }
   if (input.tool_name !== "AskUserQuestion") return undefined;
+  const project = findProjectRoot(input.cwd ?? process.cwd());
+  const mode = modeOf(project, options);
+  if (mode === "off") {
+    log("mode off; passing through");
+    return undefined;
+  }
 
   let client: DwClient;
   try {
-    // No autoStart: a freshly started daemon has no UI, so nobody could answer anyway.
-    client = await DwClient.connect({ socketPath: options.socketPath });
+    // Workspace only: a freshly started daemon has no UI, so do not start one. With a Popup
+    // (auto / popup) the daemon can show the question by itself, so start it if needed.
+    const startDaemon = mode === "workspace" ? undefined : options.startDaemon;
+    client = await DwClient.connect({
+      socketPath: options.socketPath,
+      autoStart: startDaemon ? () => startDaemon(options.socketPath) : undefined,
+    });
   } catch {
     log("daemon not running; passing through");
     return undefined;
   }
 
   const questions = input.tool_input.questions;
-  const timer = setTimeout(() => options.notify?.(questions.length), options.notifyAfterMs ?? 300);
+  // The Popup announces itself; the sound and banner are for questions waiting in a terminal.
+  const timer =
+    mode === "popup"
+      ? undefined
+      : setTimeout(() => options.notify?.(questions.length), options.notifyAfterMs ?? 300);
   try {
     const result = await client.call("decision.askBatch", {
-      project: findProjectRoot(input.cwd ?? process.cwd()),
+      project,
       batchId: input.tool_use_id ?? `${input.session_id ?? "session"}-${Date.now()}`,
       sessionId: input.session_id,
       questions,
-      requireViewer: true,
+      route: true,
     });
     log(`batch finished: ${result.status}`);
     switch (result.status) {

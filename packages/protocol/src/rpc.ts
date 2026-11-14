@@ -61,11 +61,11 @@ export const methods = {
       sessionId: z.string().optional(),
       questions: z.array(AskQuestion).min(1),
       /**
-       * Hand the batch back right away (status "fallback") when no UI is watching the project,
-       * and when the last one closes while waiting. The hook sets this so a question nobody can
-       * see doesn't block Claude Code until its timeout.
+       * The hook sets this: apply the project's mode (T-602) to choose the Workspace, the Popup
+       * or Claude Code's own UI ("fallback"), so a question nobody can see never blocks Claude
+       * Code until its timeout. Without it the call simply waits for an answer.
        */
-      requireViewer: z.boolean().default(false),
+      route: z.boolean().default(false),
     }),
     result: AskBatchResult,
   },

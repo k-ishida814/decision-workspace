@@ -4,7 +4,7 @@
  */
 import { chmodSync, existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { connect, createServer, type Server, type Socket } from "node:net";
-import { dirname, isAbsolute, join } from "node:path";
+import { basename, dirname, isAbsolute, join } from "node:path";
 import {
   type AgentSpec,
   explorerSpec,
@@ -26,10 +26,13 @@ import {
   fromDrafts,
   isOpen,
   NO_VIEWER_REASON,
+  popupShow,
   proposalsFrom,
+  type Route,
+  routeFor,
   toReopen,
 } from "@dw/core";
-import { canonicalPath, encode, LineDecoder, loadConfig } from "@dw/ipc-client";
+import { canonicalPath, encode, LineDecoder, loadConfig, resolveMode } from "@dw/ipc-client";
 import {
   type AgentRun,
   type AskBatchResult,
@@ -44,9 +47,11 @@ import {
   type ResultOf,
   type RpcRequest,
   type RunEvent,
+  type UiMode,
   VERSION,
 } from "@dw/protocol";
 import { dbPathFor, Store, StoreError } from "@dw/storage";
+import { type PopupJob, PopupQueue, type PopupResult } from "./popup";
 
 export const DAEMON_VERSION = VERSION;
 
@@ -62,6 +67,15 @@ export type DaemonOptions = {
   claudeCommand?: string[];
   /** Agent settings (CF-01). Default: read ~/.decision-workspace/config.json on every run. */
   config?: () => Config;
+  /**
+   * Where a project's questions go (T-601). Default: the project override, else the user
+   * config, read on every question.
+   */
+  mode?: (project: string) => UiMode;
+  /** How to start the Popup. Default: $DW_POPUP, else `dw-popup` next to this executable. */
+  popupCommand?: () => string[] | undefined;
+  /** How long a Popup may take to appear before the question falls back. Default 5 s. */
+  popupShownTimeoutMs?: number;
 };
 
 export type Daemon = { close: () => Promise<void>; socketPath: string };
@@ -80,8 +94,16 @@ type Waiter = {
   batchId: string;
   socket: Socket;
   respond: (result: AskBatchResult) => void;
+  /** Hand the batch back when the last Workspace for the project closes. */
   requireViewer: boolean;
 };
+
+/** The Popup shipped next to the dw binary (Homebrew), unless $DW_POPUP says otherwise. */
+function defaultPopupCommand(): string[] | undefined {
+  if (process.env.DW_POPUP) return [process.env.DW_POPUP];
+  const sibling = join(dirname(process.execPath), "dw-popup");
+  return existsSync(sibling) ? [sibling] : undefined;
+}
 
 export async function startDaemon(options: DaemonOptions): Promise<Daemon> {
   const now = options.now ?? (() => new Date().toISOString());
@@ -234,6 +256,67 @@ export async function startDaemon(options: DaemonOptions): Promise<Daemon> {
     );
   }
 
+  function modeFor(project: string): UiMode {
+    try {
+      return (options.mode ?? ((p: string) => resolveMode(p).mode))(canonicalPath(project));
+    } catch (error) {
+      log(`mode ignored: ${(error as Error).message}`);
+      return "workspace";
+    }
+  }
+
+  const popups = new PopupQueue({
+    command: options.popupCommand ?? defaultPopupCommand,
+    shownTimeoutMs: options.popupShownTimeoutMs ?? 5000,
+    log,
+    show: (job, more) => {
+      const batch = store(job.project).byBatch(job.batchId);
+      const first = batch[0];
+      return popupShow(
+        batch,
+        {
+          project: basename(job.project),
+          session: first?.sessionId?.slice(0, 8),
+          at: first?.createdAt ?? now(),
+        },
+        more,
+        hasViewer(job.project),
+      );
+    },
+    done: (job, result) => popupDone(job, result),
+  });
+
+  /** Apply what the Popup returned; anything that cannot be applied falls back (T-602). */
+  function popupDone(job: PopupJob, result: PopupResult): void {
+    const s = store(job.project);
+    if (result.type === "toWorkspace") {
+      const w = [...waiters].find((x) => x.project === job.project && x.batchId === job.batchId);
+      if (w && hasViewer(job.project)) {
+        w.requireViewer = true; // now the Workspace's: hand back if it closes
+        return;
+      }
+    }
+    if (result.type === "answer") {
+      try {
+        s.tx(() => {
+          for (const a of result.answers) {
+            const d = s.get(a.id);
+            if (!d || d.batchId !== job.batchId || !isOpen(d)) continue;
+            if ("skipped" in a) s.transition(d.id, d.version, "skipped", "user", now());
+            else
+              s.answer(d.id, d.version, { selected: a.selected, text: a.text }, undefined, now());
+          }
+        });
+      } catch (error) {
+        log(`popup answer for ${job.batchId} rejected: ${(error as Error).message}`);
+      }
+      flush(job.project);
+      if (batchOutcome(s.byBatch(job.batchId))) return;
+    }
+    s.cancelBatch(job.batchId, FALLBACK_REASON, now());
+    flush(job.project);
+  }
+
   function store(project: string): Store {
     if (!isAbsolute(project))
       throw new RpcFailure(ErrorCode.InvalidParams, "project must be an absolute path");
@@ -278,6 +361,14 @@ export async function startDaemon(options: DaemonOptions): Promise<Daemon> {
       }
     }
     settleWaiters(project, decisions);
+    // A batch settled elsewhere (Workspace, CLI, Claude Code withdrew it): close its Popup.
+    const key = canonicalPath(project);
+    for (const batchId of new Set(decisions.map((d) => d.batchId).filter(Boolean))) {
+      const job = { project: key, batchId: batchId as string };
+      if (popups.has(job) && batchOutcome(store(project).byBatch(job.batchId))) {
+        popups.withdraw(job);
+      }
+    }
   }
 
   /** Answer any hook waiting on a batch that just finished. */
@@ -309,8 +400,11 @@ export async function startDaemon(options: DaemonOptions): Promise<Daemon> {
     },
 
     "decision.askBatch": (p, socket, respondLater) => {
-      // Nobody could see the question: give it straight back to Claude Code's own UI.
-      if (p.requireViewer && !hasViewer(p.project)) return { status: "fallback" as const };
+      // Workspace, Popup, or straight back to Claude Code's own UI (design/ui-modes.md §3).
+      const route: Route | undefined = p.route
+        ? routeFor(modeFor(p.project), hasViewer(p.project))
+        : undefined;
+      if (route === "fallback") return { status: "fallback" as const };
       const s = store(p.project);
       // Claude Code may fire PreToolUse again for the same tool_use_id (e.g. on resume):
       // reuse the existing decisions instead of asking twice.
@@ -326,8 +420,10 @@ export async function startDaemon(options: DaemonOptions): Promise<Daemon> {
         batchId: p.batchId,
         socket,
         respond: respondLater,
-        requireViewer: p.requireViewer,
+        requireViewer: route === "workspace",
       });
+      if (route === "popup")
+        popups.enqueue({ project: canonicalPath(p.project), batchId: p.batchId });
       return LATER;
     },
 
@@ -574,6 +670,7 @@ export async function startDaemon(options: DaemonOptions): Promise<Daemon> {
       // Order matters: settle waiting hooks while the databases are still open, then drop
       // connections, then close the databases.
       closing = true;
+      popups.close();
       for (const w of [...waiters]) abandon(w);
       // Stop agents and let them record "cancelled" before the databases close.
       for (const r of running.values()) r.controller.abort();

@@ -150,7 +150,7 @@ export async function run(
   // What Claude Code runs (registered by dw install). Neither returns.
   if (command === "hook") {
     const { hookMain } = await import("@dw/hook/entry");
-    return hookMain();
+    return hookMain(options.autoStart ?? spawnDaemon);
   }
   if (command === "mcp") {
     const { mcpMain } = await import("@dw/mcp/entry");
