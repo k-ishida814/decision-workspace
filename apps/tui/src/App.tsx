@@ -21,9 +21,10 @@ import {
 } from "@dw/core";
 import type { AgentRun, Decision, Exploration, Plan, Proposal, Revision } from "@dw/protocol";
 import { TextAttributes } from "@opentui/core";
-import { useKeyboard, useRenderer } from "@opentui/react";
+import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/react";
 import { type Dispatch, useEffect, useReducer, useRef, useState } from "react";
 import { type Backend, describeError } from "./backend";
+import { LOGO_LINES, LOGO_WIDTH, logoSegments } from "./logo";
 
 const DIM = TextAttributes.DIM;
 const BOLD = TextAttributes.BOLD;
@@ -119,7 +120,14 @@ export function App({ backend, title }: { backend: Backend; title?: string }) {
     <box flexDirection="column" padding={1} gap={1}>
       <Header state={state} title={title} />
       {state.editing === "plan" ? (
-        <box border borderStyle="rounded" title=" Plan " padding={1} flexDirection="column">
+        <box
+          border
+          borderStyle="rounded"
+          title=" Plan "
+          padding={1}
+          flexDirection="column"
+          flexShrink={0}
+        >
           <text>What do you want to build or change? The Planner lists the decisions to make.</text>
           <TextInput
             placeholder="Describe it and press Enter (Esc to go back)"
@@ -231,8 +239,12 @@ function Current({
   const run = d ? runningRun(state, d.id) : undefined;
   if (!d) {
     return (
-      <box border borderStyle="rounded" padding={1}>
+      <box border borderStyle="rounded" padding={1} flexDirection="column" gap={1}>
+        <Logo hidden={state.editing !== undefined} />
         <text attributes={DIM}>No open questions. Waiting for Claude Code…</text>
+        <text attributes={DIM}>
+          p plans a feature · Tab shows the Queue, History and Graph · ? keys
+        </text>
       </box>
     );
   }
@@ -243,7 +255,7 @@ function Current({
         {d.question}
       </text>
       {d.dependsOn.length > 0 ? (
-        <text attributes={DIM}>
+        <text attributes={DIM} flexShrink={0}>
           After:{" "}
           {d.dependsOn
             .map((dep) => prerequisiteText(dep.id, dep.whenOptions, state.decisions))
@@ -251,7 +263,9 @@ function Current({
         </text>
       ) : null}
       {d.status === "revisit" && d.answer ? (
-        <text fg={NOTICE}>Answer again (was: {answerText(d)})</text>
+        <text fg={NOTICE} flexShrink={0}>
+          Answer again (was: {answerText(d)})
+        </text>
       ) : null}
       {d.kind === "text" ? (
         <text attributes={DIM}>Free-text question. Press Enter to answer.</text>
@@ -299,6 +313,31 @@ function Current({
           onSubmit={(value) => dispatch({ type: "submitText", value })}
         />
       ) : null}
+    </box>
+  );
+}
+
+/** The logo on the empty Current screen, when the terminal is wide enough for it. */
+function Logo({ hidden }: { hidden: boolean }) {
+  const { width, height } = useTerminalDimensions();
+  // Only with room to spare: the logo must never push anything else off the screen.
+  if (hidden || width < LOGO_WIDTH + 8 || height < LOGO_LINES.length + 14) {
+    return <text attributes={BOLD}>Decision Workspace</text>;
+  }
+  return (
+    <box flexDirection="column" flexShrink={0}>
+      {LOGO_LINES.map((line, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: fixed lines, never reordered
+        <text key={i} flexShrink={0}>
+          {line === "" ? " " : null}
+          {logoSegments(line, LOGO_WIDTH, 3).map((s, j) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: fixed segments
+            <span key={j} fg={s.color}>
+              {s.text}
+            </span>
+          ))}
+        </text>
+      ))}
     </box>
   );
 }
