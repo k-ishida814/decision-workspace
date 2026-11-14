@@ -1,6 +1,22 @@
+<p align="center">
+  <img src="docs/media/hero.png" alt="Decision Workspace" width="760">
+</p>
+
+<p align="center">
+  <a href="https://github.com/k-ishida814/decision-workspace/releases/latest"><img src="https://img.shields.io/github/v/release/k-ishida814/decision-workspace?sort=semver" alt="Release"></a>
+  <a href="https://github.com/k-ishida814/decision-workspace/actions/workflows/ci.yml"><img src="https://github.com/k-ishida814/decision-workspace/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/k-ishida814/homebrew-tap"><img src="https://img.shields.io/badge/homebrew-k--ishida814%2Ftap-FBB040?logo=homebrew&logoColor=white" alt="Homebrew"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20(Apple%20Silicon)-lightgrey?logo=apple" alt="macOS (Apple Silicon)">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/k-ishida814/decision-workspace" alt="License: MIT"></a>
+</p>
+
 # Decision Workspace
 
 Answer Claude Code's questions one at a time, in a workspace of their own.
+
+<p align="center">
+  <img src="docs/media/current.gif" alt="Answering Claude Code's questions in dw tui" width="760">
+</p>
 
 When Claude Code asks you something (`AskUserQuestion`), the question goes to a queue in a
 terminal UI (`dw tui`) instead of interrupting the chat. You answer there, one decision at a
@@ -14,6 +30,9 @@ On top of the queue:
 - **Deep Dive**: an agent researches one decision's options and recommends one.
 - **Planner**: describe what you want to build; an agent lists the decisions you need to make,
   with their dependencies.
+
+  <img src="docs/media/planner.gif" alt="The Planner turns a request into a plan of decisions" width="680">
+
 - **Reviewer**: an agent checks your answers for conflicts and missing decisions. It only
   proposes; you accept or dismiss.
 - **Back to Claude**: decisions made in the workspace are added to your next prompt, and Claude
@@ -97,13 +116,36 @@ Add `--json` for machine-readable output. `dw --help` lists everything.
 
 Add `.decision-workspace/` to your project's `.gitignore` unless you want to commit decisions.
 
+More demos: [changing an answer in the Graph](docs/media/graph.gif),
+[Deep Dive](docs/media/deepdive.gif).
+
 ## Development
 
 ```sh
 bun install
-bun run check          # lint, type check, tests
+bun run check          # lint, type check, tests (no model calls)
+bun run e2e            # end-to-end with the real claude CLI (calls the model, a few cents)
 bun run dw -- <args>   # dw from source
 bun run build          # single binary in dist/dw
+bun run build:popup    # the Popup (Tauri 2, needs Rust) in apps/popup
+```
+
+### Releasing
+
+1. Push to `main` and wait for CI.
+2. Tag and push: `git tag -a v0.2.0 -m "..." && git push origin v0.2.0`.
+3. The release workflow tests, builds `dw` for Apple Silicon, publishes the GitHub release and
+   updates the formula in [k-ishida814/homebrew-tap](https://github.com/k-ishida814/homebrew-tap)
+   (needs the `HOMEBREW_TAP_TOKEN` secret).
+
+### Demo GIFs
+
+The images in `docs/media` are recorded with [vhs](https://github.com/charmbracelet/vhs) in an
+isolated demo (its own daemon, settings and project under `/tmp/dwdemo`). Deep Dive and the
+Planner call the real model (haiku).
+
+```sh
+vhs docs/media/tapes/hero.tape      # also: current, graph, deepdive, planner
 ```
 
 Design documents (in Japanese): [requirements](docs/requirements.md),
