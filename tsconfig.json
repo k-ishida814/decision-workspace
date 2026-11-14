@@ -13,5 +13,6 @@
     "scripts/**/*.ts",
     "tests/**/*.ts",
     "tests/**/*.tsx"
-  ]
+  ],
+  "exclude": ["apps/popup/**"]
 }

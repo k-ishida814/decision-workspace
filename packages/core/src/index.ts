@@ -4,6 +4,7 @@ export * from "./draft";
 export * from "./explore";
 export * from "./graph";
 export * from "./overview";
+export * from "./popup-ui";
 export * from "./review";
 export * from "./route";
 export * from "./stats";

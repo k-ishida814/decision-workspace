@@ -1,6 +1,8 @@
 # S-06: Tauri 2 の1問 Popup（macOS）
 
-[tasks.md](../../docs/tasks.md) の S-06 と S-07。設計案は [design/ui-modes.md](../../docs/design/ui-modes.md)。stdin で質問の JSON を受け取り、ウィンドウに出して、回答を stdout に1行の JSON で返す。**捨てるコード**。本実装（T-603）では画面を React と `packages/core` の reducer で作り直す。
+> S-06 の検証コードは、本実装の `apps/popup`（T-603）ができたので削除した（2026-11-14）。コードは commit `4d231047` の `spikes/s06-popup/` にある。
+
+[tasks.md](../../tasks.md) の S-06 と S-07。設計案は [design/ui-modes.md](../../design/ui-modes.md)。stdin で質問の JSON を受け取り、ウィンドウに出して、回答を stdout に1行の JSON で返す。**捨てるコード**。本実装（T-603）では画面を React と `packages/core` の reducer で作り直す。
 
 ```sh
 spikes/s06-popup/try.sh          # 3秒後に1問の Popup。そのあいだターミナルで打ち続けて、フォーカスを見る

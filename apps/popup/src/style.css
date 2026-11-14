@@ -1,0 +1,151 @@
+:root {
+  color-scheme: light dark;
+  --accent: #00a7d6;
+  --line: color-mix(in srgb, currentColor 18%, transparent);
+  --soft: color-mix(in srgb, currentColor 60%, transparent);
+  font:
+    13px / 1.45 -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.popup {
+  padding: 14px 16px 12px;
+}
+.origin {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--soft);
+  margin-bottom: 6px;
+}
+.origin .more {
+  margin-left: auto;
+  color: var(--accent);
+}
+h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+h1 .title {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  color: var(--soft);
+}
+h1 .count {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--soft);
+}
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.option.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.option .label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.option .key {
+  font-size: 11px;
+  color: var(--soft);
+  min-width: 10px;
+}
+.option .box {
+  color: var(--accent);
+}
+.option .badge {
+  font-size: 10px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: white;
+}
+.option .desc {
+  font-size: 12px;
+  color: var(--soft);
+  padding-left: 18px;
+}
+.text {
+  width: 100%;
+  margin-top: 8px;
+  padding: 7px 9px;
+  font: inherit;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.notice {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #d97706;
+}
+.bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+  align-items: center;
+}
+.bar .spacer {
+  flex: 1;
+}
+.bar button {
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.bar button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+kbd {
+  font: inherit;
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: 3px;
+}

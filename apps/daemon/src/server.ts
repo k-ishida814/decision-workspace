@@ -98,11 +98,18 @@ type Waiter = {
   requireViewer: boolean;
 };
 
-/** The Popup shipped next to the dw binary (Homebrew), unless $DW_POPUP says otherwise. */
+/**
+ * $DW_POPUP, else the Popup shipped next to the dw binary (Homebrew), else a development build
+ * in this repository (bun run build:popup).
+ */
 function defaultPopupCommand(): string[] | undefined {
   if (process.env.DW_POPUP) return [process.env.DW_POPUP];
-  const sibling = join(dirname(process.execPath), "dw-popup");
-  return existsSync(sibling) ? [sibling] : undefined;
+  const candidates = [
+    join(dirname(process.execPath), "dw-popup"),
+    join(import.meta.dir, "../../popup/src-tauri/target/release/dw-popup"),
+  ];
+  const found = candidates.find((c) => existsSync(c));
+  return found ? [found] : undefined;
 }
 
 export async function startDaemon(options: DaemonOptions): Promise<Daemon> {

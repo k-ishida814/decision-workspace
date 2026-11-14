@@ -1,0 +1,19 @@
+{
+  "name": "@dw/popup",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:ui": "bun build ./src/index.html --outdir dist --minify",
+    "build": "bun run build:ui && cargo build --release --manifest-path src-tauri/Cargo.toml"
+  },
+  "dependencies": {
+    "@dw/core": "workspace:*",
+    "@dw/protocol": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react-dom": "^19.2.0"
+  }
+}

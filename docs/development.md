@@ -66,3 +66,15 @@ bun run e2e        # 本物の Claude Code での E2E（モデルを呼ぶので
 `bun run e2e` は `tests/e2e/` のすべてを実行する。Hook（`claude -p` 2回）、Deep Dive（Explorer 1回）、MCP での登録（1回）、登録→回答→次のプロンプトで受け取る往復（2回）、Planner（1回）、Reviewer（1回）。どれも `haiku` で、合計 $0.05 程度。モデルは `DW_E2E_MODEL` で変更可。`-p` では permission host がないと `AskUserQuestion` が使えないため、何でも拒否するだけのスタブ MCP（`tests/e2e/permission-stub.ts`）を `--permission-prompt-tool` に渡している。Hook が先に回答するので、スタブに `AskUserQuestion` の問い合わせが来ないこともテストで確認している。
 
 開発中に本物の `~/.decision-workspace/` を汚したくないときは、`DW_SOCKET=/tmp/dw-dev.sock` のようにソケットを分ける。DB は各プロジェクトの `.decision-workspace/` にできる。
+
+## Popup（apps/popup、Tauri 2）
+
+Rust のツールチェーン（rustup）が必要。画面は React で、`bun build` で `apps/popup/dist` にまとめてから Tauri に組み込む。
+
+```sh
+bun run build:popup                             # UI のビルド → cargo build --release（初回は1分半ほど）
+bun run dw -- config set mode popup --local     # このプロジェクトの質問を Popup に出す
+bun scripts/try-popup.ts [two]                  # Hook と同じ経路で質問する（Claude Code なしで試せる）
+```
+
+Daemon は `$DW_POPUP`、`dw` と同じディレクトリの `dw-popup`、このリポジトリの `apps/popup/src-tauri/target/release/dw-popup` の順に Popup を探す。見つからなければ Claude Code の通常 UI に戻す。Daemon を古いコードのまま動かしていると反映されないので、`pkill -f "daemon run"` してから試す。
