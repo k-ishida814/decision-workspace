@@ -25,8 +25,12 @@ import {
   findProjectRoot,
   getConfigValue,
   loadConfig,
+  projectConfigPath,
   RpcCallError,
+  resolveMode,
   setConfigValue,
+  setProjectConfigValue,
+  unsetProjectConfigValue,
 } from "@dw/ipc-client";
 import type {
   AgentRun,
@@ -97,10 +101,11 @@ Usage:
   dw revisit <id>                       reopen a decided decision
   dw hold|unhold <id>                   put aside / bring back
   dw daemon run|status                  run the daemon in the foreground / check it
-  dw config [get [<key>] | set <key> <value>]
-                                        settings in ~/.decision-workspace/config.json
-                                        (agents.model, agents.maxBudgetUsd, agents.maxTurns,
-                                        agents.concurrency)
+  dw config [get [<key>] | set <key> <value> [--local] | unset <key> --local]
+                                        settings in ~/.decision-workspace/config.json:
+                                        mode (auto|workspace|popup|off: where questions show),
+                                        agents.model, agents.maxBudgetUsd, agents.maxTurns,
+                                        agents.concurrency. --local: this project only (mode)
   dw install [--local] [--timeout <sec>] [--no-mcp]
                                         add the AskUserQuestion hook to .claude/settings.json
                                         (--local: settings.local.json, not committed) and the
@@ -154,11 +159,12 @@ export async function run(
 
   const socketPath = values.socket ?? defaultSocketPath();
   if (command === "daemon") return daemonCommand(args[0], socketPath, io);
-  if (command === "config") return configCommand(args, values.json ?? false, io);
-
   const project = values.project
     ? resolve(values.project)
     : findProjectRoot(options.cwd ?? process.cwd());
+  if (command === "config") {
+    return configCommand(args, values.json ?? false, values.local ?? false, () => project, io);
+  }
   const autoStart = options.autoStart ?? spawnDaemon;
   if (command === "install" || command === "uninstall") {
     return installCommand(
@@ -669,30 +675,56 @@ function showDiff(
   }
 }
 
-function configCommand(args: readonly string[], json: boolean, io: Io): number {
+function configCommand(
+  args: readonly string[],
+  json: boolean,
+  local: boolean,
+  project: () => string,
+  io: Io,
+): number {
   const [sub = "get", key, value] = args;
   try {
     if (sub === "get") {
       const config = loadConfig();
+      const mode = resolveMode(project());
       if (key) {
         if (!(key in CONFIG_KEYS)) throw new ConfigError(`unknown key "${key}"`);
-        const v = getConfigValue(config, key as ConfigKey);
+        const v = key === "mode" ? mode.mode : getConfigValue(config, key as ConfigKey);
         io.out(json ? JSON.stringify(v) : String(v));
         return 0;
       }
-      if (json) io.out(JSON.stringify(config, null, 2));
-      else
-        for (const k of Object.keys(CONFIG_KEYS))
-          io.out(`${k} = ${getConfigValue(config, k as ConfigKey)}`);
+      if (json) {
+        io.out(JSON.stringify({ ...config, mode: mode.mode, modeSource: mode.source }, null, 2));
+        return 0;
+      }
+      for (const k of Object.keys(CONFIG_KEYS)) {
+        if (k === "mode") io.out(`mode = ${mode.mode}  (${mode.source})`);
+        else io.out(`${k} = ${getConfigValue(config, k as ConfigKey)}`);
+      }
       return 0;
     }
     if (sub === "set") {
-      if (!key || value === undefined) throw new UsageError("usage: dw config set <key> <value>");
-      setConfigValue(key, value);
-      io.out(`${key} = ${value}  (${configPath()})`);
+      if (!key || value === undefined) {
+        throw new UsageError("usage: dw config set <key> <value> [--local]");
+      }
+      if (local) {
+        setProjectConfigValue(project(), key, value);
+        io.out(`${key} = ${value}  (${projectConfigPath(project())}, this project only)`);
+      } else {
+        setConfigValue(key, value);
+        io.out(`${key} = ${value}  (${configPath()})`);
+      }
       return 0;
     }
-    throw new UsageError("usage: dw config [get [<key>] | set <key> <value>]");
+    if (sub === "unset") {
+      if (!key || !local) throw new UsageError("usage: dw config unset <key> --local");
+      unsetProjectConfigValue(project(), key);
+      io.out(`${key}: this project now uses the user setting`);
+      return 0;
+    }
+    throw new UsageError(
+      "usage: dw config [get [<key>] | set <key> <value> [--local] | unset <key> --local]",
+    );
   } catch (error) {
     if (error instanceof UsageError) {
       io.err(error.message);

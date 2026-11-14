@@ -29,6 +29,7 @@ beforeAll(async () => {
   daemon = await startDaemon({
     socketPath,
     config: () => ({
+      ...DEFAULT_CONFIG,
       agents: {
         ...DEFAULT_CONFIG.agents,
         model: process.env.DW_E2E_MODEL ?? "haiku",

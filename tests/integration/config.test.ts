@@ -74,3 +74,28 @@ test("a broken file is reported, not overwritten", async () => {
   expect((await dw("config", "set", "agents.model", "haiku")).code).toBe(1);
   expect(readFileSync(file, "utf8")).toBe("{ nope");
 });
+
+test("mode (T-601): user setting, per-project override with --local, and where it comes from", async () => {
+  const project = join(dir, "proj");
+  const inProject = (...argv: string[]) => dw(...argv, "--project", project);
+  expect((await inProject("config", "get", "mode")).out).toBe("workspace");
+  expect((await inProject("config", "get")).out).toContain("mode = workspace  (default)");
+
+  expect((await inProject("config", "set", "mode", "auto")).code).toBe(0);
+  expect((await inProject("config", "get")).out).toContain("mode = auto  (user)");
+
+  const local = await inProject("config", "set", "mode", "popup", "--local");
+  expect(local.out).toContain("this project only");
+  const projectFile = join(project, ".decision-workspace", "config.json");
+  expect(JSON.parse(readFileSync(projectFile, "utf8"))).toEqual({ mode: "popup" });
+  expect((await inProject("config", "get")).out).toContain("mode = popup  (project)");
+  // Another project still uses the user setting.
+  expect((await dw("config", "get", "mode", "--project", join(dir, "other"))).out).toBe("auto");
+
+  expect((await inProject("config", "set", "mode", "sometimes")).code).toBe(1);
+  expect((await inProject("config", "set", "agents.model", "haiku", "--local")).err).toContain(
+    "cannot be set per project",
+  );
+  expect((await inProject("config", "unset", "mode", "--local")).code).toBe(0);
+  expect((await inProject("config", "get", "mode")).out).toBe("auto");
+});

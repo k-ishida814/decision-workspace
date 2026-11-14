@@ -37,7 +37,7 @@ beforeEach(async () => {
   daemon = await startDaemon({
     socketPath,
     claudeCommand: ["bun", FAKE],
-    config: () => ({ agents: { ...DEFAULT_CONFIG.agents, model: "haiku" } }),
+    config: () => ({ ...DEFAULT_CONFIG, agents: { ...DEFAULT_CONFIG.agents, model: "haiku" } }),
   });
   c = await DwClient.connect({ socketPath });
   runs = [];
