@@ -239,7 +239,9 @@ function Current({
   const title = ` ${d.id}${d.title ? ` · ${d.title}` : ""}${batchPosition(state, d)}${d.held ? " · held" : ""} `;
   return (
     <box border borderStyle="rounded" title={title} padding={1} flexDirection="column" gap={1}>
-      <text attributes={BOLD}>{d.question}</text>
+      <text attributes={BOLD} flexShrink={0}>
+        {d.question}
+      </text>
       {d.dependsOn.length > 0 ? (
         <text attributes={DIM}>
           After:{" "}
@@ -249,25 +251,33 @@ function Current({
         </text>
       ) : null}
       {d.status === "revisit" && d.answer ? (
-        <text fg={NOTICE}>Re-checking because a prerequisite changed (was: {answerText(d)})</text>
+        <text fg={NOTICE}>Answer again (was: {answerText(d)})</text>
       ) : null}
       {d.kind === "text" ? (
         <text attributes={DIM}>Free-text question. Press Enter to answer.</text>
       ) : (
-        <box flexDirection="column">
+        <box flexDirection="column" flexShrink={0}>
           {d.options.map((o, i) => {
             const active = i === state.cursor;
             const mark = d.kind === "multi" ? (state.picked.includes(o.id) ? "[x] " : "[ ] ") : "";
             return (
-              <box key={o.id} flexDirection="column">
-                <text fg={active ? ACCENT : undefined} attributes={active ? BOLD : 0}>
+              // flexShrink 0: when a long Deep Dive overflows the screen, never squeeze the
+              // option label away (it would vanish while its pros and cons stay).
+              <box key={o.id} flexDirection="column" flexShrink={0}>
+                <text
+                  fg={active ? ACCENT : undefined}
+                  attributes={active ? BOLD : 0}
+                  flexShrink={0}
+                >
                   {active ? "› " : "  "}
                   {mark}
                   {i + 1}. {o.label}
                   {o.recommended ? " ★ recommended" : ""}
                   {o.source === "explorer" ? " (from Deep Dive)" : ""}
                 </text>
-                {o.description ? <text attributes={DIM}>{`       ${o.description}`}</text> : null}
+                {o.description ? (
+                  <text attributes={DIM} flexShrink={0}>{`       ${o.description}`}</text>
+                ) : null}
                 <Tradeoff exploration={exploration} optionId={o.id} />
               </box>
             );
@@ -318,10 +328,16 @@ function useLatestExploration(backend: Backend, d: Decision | undefined): Explor
 function Tradeoff({ exploration, optionId }: { exploration?: Exploration; optionId: string }) {
   const t = exploration?.tradeoffs.find((x) => x.optionId === optionId);
   if (!t || (t.pros.length === 0 && t.cons.length === 0)) return null;
+  // The top two of each: the full list is in `dw show`.
   return (
-    <text attributes={DIM}>
-      {`       ＋ ${t.pros.join(" / ") || "-"}　－ ${t.cons.join(" / ") || "-"}`}
-    </text>
+    <box flexDirection="column" flexShrink={0}>
+      {t.pros.length > 0 ? (
+        <text fg="#4ADE80">{`       + ${t.pros.slice(0, 2).join(" / ")}`}</text>
+      ) : null}
+      {t.cons.length > 0 ? (
+        <text fg="#F87171">{`       - ${t.cons.slice(0, 2).join(" / ")}`}</text>
+      ) : null}
+    </box>
   );
 }
 
@@ -354,10 +370,10 @@ function DeepDive({
   const waiting = useElapsed(run && decision.origin === "ask" ? decision.createdAt : undefined);
   const recommended = decision.options.find((o) => o.recommended && o.reason);
   return (
-    <box flexDirection="column">
-      {exploration ? <text>Deep Dive: {exploration.summary}</text> : null}
+    <box flexDirection="column" flexShrink={0}>
+      {exploration ? <text flexShrink={0}>Deep Dive: {exploration.summary}</text> : null}
       {recommended ? (
-        <text fg={ACCENT}>
+        <text fg={ACCENT} flexShrink={0}>
           Recommended: {recommended.label} — {recommended.reason}
         </text>
       ) : null}
@@ -483,7 +499,7 @@ function History({ state, backend }: { state: UiState; backend: Backend }) {
               <box key={d.id} flexDirection="column">
                 <text fg={active ? ACCENT : undefined} attributes={active ? BOLD : 0}>
                   {active ? "› " : "  "}
-                  {d.id.padEnd(5)} {statusLabel(d).padEnd(6)}
+                  {d.id.padEnd(5)} {statusLabel(d).padEnd(10)}
                   {d.title ? `[${d.title}] ` : ""}
                   {d.question}
                 </text>

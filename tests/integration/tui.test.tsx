@@ -250,7 +250,7 @@ test("graph in the TUI: queue tree, prerequisites in Current, diff in History (T
   s.mockInput.pressKey("2");
   s.mockInput.pressEnter(); // same answer again
   const recheck = await frame((f) => f.includes("同期方式は？"));
-  expect(recheck).toContain("Re-checking because a prerequisite changed (was: CRDT)");
+  expect(recheck).toContain("Answer again (was: CRDT)");
   s.mockInput.pressKey("2");
   s.mockInput.pressEnter();
   s.mockInput.pressTab();

@@ -107,7 +107,8 @@ test("d runs a Deep Dive and the result appears in Current", async () => {
   await frame((f) => f.includes("Deep Dive running…") && f.includes("d to cancel"));
   const done = await frame((f) => f.includes("Deep Dive: 決め手は共有と移植性。"));
   expect(done).toContain("1. Tauri 2 ★ recommended");
-  expect(done).toContain("＋ reducer を共有　－ Rust が要る");
+  expect(done).toContain("+ reducer を共有");
+  expect(done).toContain("- Rust が要る");
   expect(done).toContain("3. Wails (from Deep Dive)");
   expect(done).toContain("Recommended: Tauri 2 — UI ロジックを共有できる");
   expect(done).not.toContain("Deep Dive running…");
