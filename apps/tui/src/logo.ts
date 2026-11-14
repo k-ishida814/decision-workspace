@@ -7,9 +7,9 @@
  */
 export const LOGO_COLORS = {
   /** Left edge of the gradient. */
-  from: "#00D7FF",
+  from: "#FACC15",
   /** Right edge of the gradient. */
-  to: "#A855F7",
+  to: "#FFFFFF",
   /** How bright the shadow strokes (╗ ║ ╚ ═) are, relative to the letters (0–1). */
   shadow: 0.45,
 };
